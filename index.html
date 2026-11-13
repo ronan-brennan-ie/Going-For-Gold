@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111d46"><title>Going For Gold — Quiz Challenge</title>
+<style>
+:root{font-family:system-ui,Arial,sans-serif;color:#fff;background:#0b1230}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 0,#283e80,#0b1230 65%)}main{max-width:720px;margin:auto;padding:18px 16px 48px}header{text-align:center;padding:20px 0 12px}h1{font-size:clamp(2.2rem,9vw,4rem);color:#ffd65c;text-shadow:0 3px 0 #875d18;margin:0;line-height:1.05}h2{margin:10px 0}p{line-height:1.5}.sub{color:#d4defe}.panel{background:#182857;border:1px solid #455c9e;border-radius:18px;padding:22px;margin:16px 0;box-shadow:0 8px 30px #0004}.pill{display:inline-block;background:#354c8b;padding:7px 12px;border-radius:99px;font-size:.85rem}.gold{color:#ffd65c}.score{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;margin:12px 0}.score span{background:#0e1b40;padding:10px;border-radius:9px}button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:15px 18px;font-weight:750;min-height:52px}button:focus-visible{outline:3px solid #ffd65c;outline-offset:3px}.primary{background:#ffd65c;color:#1d2340;width:100%;margin-top:12px}.answer{display:block;width:100%;margin:10px 0;text-align:left;background:#eef2ff;color:#15214b}.answer:disabled{opacity:.8;cursor:default}.answer.correct{background:#80e1b1;color:#092e23}.answer.wrong{background:#ff9b9b;color:#481212}.secondary{background:#405b9e;color:white}.hidden{display:none}.timer{height:9px;background:#0c1534;border-radius:12px;overflow:hidden;margin:16px 0}.timer>div{height:100%;background:#ffd65c;transition:width .2s linear}#feedback{min-height:32px;font-weight:650}footer{text-align:center;color:#a9b9e5;font-size:.8rem;margin-top:28px}
+</style></head><body><main><header><div class="pill">RETRO QUIZ CHALLENGE</div><h1>GOING<br>FOR GOLD</h1><p class="sub">A mobile-friendly tribute to the classic European quiz show</p></header>
+<section id="start" class="panel"><h2>Welcome, contestant!</h2><p>Take on three computer opponents through four rounds: Elimination, Beat the Buzzer, Four in a Row and the Final.</p><p>Medium difficulty · 10-second questions · Solo play</p><button class="primary" id="startBtn">Start the game</button></section>
+<section id="game" class="panel hidden" aria-live="polite"><div class="pill" id="roundName"></div><div class="score" id="scores"></div><p class="sub" id="progress"></p><div class="timer"><div id="bar"></div></div><h2 id="question"></h2><div id="answers"></div><p id="feedback"></p><button id="nextBtn" class="primary hidden">Next question</button></section>
+<section id="finish" class="panel hidden"><h2 id="result"></h2><p id="summary"></p><button class="primary" id="again">Play again</button></section>
+<footer>Unofficial fan-made quiz. Not affiliated with the original programme or rights holders.</footer></main>
+<script>
+const questions=[
+["Which city is the capital of Slovenia?",["Ljubljana","Zagreb","Bratislava","Sarajevo"],0],
+["What is the chemical symbol for tungsten?",["W","T","Tu","Sn"],0],
+["Which novel begins with the character Ishmael?",["Moby-Dick","Dracula","The Odyssey","Dune"],0],
+["Who painted The Persistence of Memory?",["Salvador Dalí","Pablo Picasso","Joan Miró","Claude Monet"],0],
+["Which country won the 1992 UEFA European Championship?",["Denmark","Germany","Netherlands","Sweden"],0],
+["What is the largest moon of Saturn?",["Titan","Europa","Ganymede","Triton"],0],
+["In which year did the Berlin Wall fall?",["1989","1987","1991","1993"],0],
+["Which river flows through Budapest?",["Danube","Rhine","Seine","Vistula"],0],
+["What is the smallest prime number greater than 50?",["53","51","55","57"],0],
+["Who composed The Four Seasons?",["Antonio Vivaldi","Johann Bach","Franz Schubert","George Handel"],0],
+["Which element has atomic number 8?",["Oxygen","Nitrogen","Carbon","Neon"],0],
+["Which country is home to the ancient city of Petra?",["Jordan","Egypt","Greece","Turkey"],0],
+["What is the currency of Poland?",["Złoty","Euro","Forint","Koruna"],0],
+["Who wrote The Handmaid's Tale?",["Margaret Atwood","Doris Lessing","Toni Morrison","Alice Munro"],0],
+["Which planet has the shortest year?",["Mercury","Venus","Mars","Jupiter"],0],
+["Which Irish county is known as the Treaty County?",["Limerick","Clare","Kerry","Tipperary"],0],
+["What does DNA stand for?",["Deoxyribonucleic acid","Dinitrogen acid","Dynamic nucleic array","Deoxynitric acid"],0],
+["Which mountain range separates France and Spain?",["Pyrenees","Alps","Apennines","Carpathians"],0],
+["Which actor played the title role in the 1982 film Gandhi?",["Ben Kingsley","Alec Guinness","Peter O'Toole","Anthony Hopkins"],0],
+["What is the official language of Brazil?",["Portuguese","Spanish","French","Italian"],0],
+["What is the longest bone in the human body?",["Femur","Tibia","Humerus","Fibula"],0],
+["Which sea lies between Italy and the Balkans?",["Adriatic","Baltic","Caspian","North Sea"],0],
+["Which scientist formulated the three laws of motion?",["Isaac Newton","Albert Einstein","Galileo Galilei","Niels Bohr"],0],
+["In computing, what does CPU stand for?",["Central Processing Unit","Computer Power Utility","Core Program Unit","Central Protocol User"],0],
+["Which African country has Addis Ababa as its capital?",["Ethiopia","Kenya","Eritrea","Uganda"],0],
+["Which Shakespeare play features Iago?",["Othello","Macbeth","Hamlet","King Lear"],0],
+["What is the square root of 144?",["12","14","11","16"],0],
+["Which artist released the album Purple Rain?",["Prince","Michael Jackson","David Bowie","Stevie Wonder"],0],
+["Which European city is famous for the Charles Bridge?",["Prague","Vienna","Kraków","Budapest"],0],
+["Which country hosted the 2010 FIFA World Cup?",["South Africa","Brazil","Germany","Japan"],0],
+["Which gas makes up most of Earth's atmosphere?",["Nitrogen","Oxygen","Carbon dioxide","Argon"],0],
+["What is the capital of New Zealand?",["Wellington","Auckland","Christchurch","Hamilton"],0],
+["Which ocean borders Mozambique?",["Indian Ocean","Atlantic Ocean","Pacific Ocean","Southern Ocean"],0],
+["Who discovered penicillin?",["Alexander Fleming","Louis Pasteur","Marie Curie","Robert Koch"],0],
+["What is the Roman numeral for 500?",["D","C","L","M"],0],
+["Which football club plays at San Mamés?",["Athletic Club","Real Sociedad","Sevilla","Valencia"],0]
+];
+const rounds=[["Elimination",6],["Beat the Buzzer",6],["Four in a Row",6],["The Final",8]];
+const $=id=>document.getElementById(id);let deck=[],index=0,round=0,within=0,score=0,opponents=[0,0,0],streak=0,bestStreak=0,answered=false,deadline=0,ticker=null;
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function start(){deck=shuffle(questions);index=round=within=score=streak=bestStreak=0;opponents=[0,0,0];$('start').classList.add('hidden');$('finish').classList.add('hidden');$('game').classList.remove('hidden');render()}
+function render(){if(round>=rounds.length||index>=deck.length){finish();return}answered=false;$('nextBtn').classList.add('hidden');$('feedback').textContent='';$('roundName').textContent='Round '+(round+1)+' · '+rounds[round][0];$('progress').textContent='Question '+(within+1)+' of '+rounds[round][1]+(round===2?' · Best streak: '+bestStreak:'');$('scores').innerHTML='<span>YOU: <b class="gold">'+score+'</b></span>'+opponents.map((n,i)=>'<span>'+['Alex','Sam','Morgan'][i]+': '+n+'</span>').join('');const q=deck[index];$('question').textContent=q[0];const order=shuffle([0,1,2,3]);$('answers').innerHTML='';order.forEach(i=>{const b=document.createElement('button');b.className='answer';b.textContent=q[1][i];b.onclick=()=>answer(i,b);$('answers').append(b)});deadline=Date.now()+10000;clearInterval(ticker);ticker=setInterval(()=>{const left=Math.max(0,deadline-Date.now());$('bar').style.width=(left/100)+'%';if(left===0&&!answered)answer(-1,null)},100)}
+function answer(choice,btn){if(answered)return;answered=true;clearInterval(ticker);const correct=choice===0;const buttons=[...$('answers').children];buttons.forEach(b=>{b.disabled=true;if(b.textContent===deck[index][1][0])b.classList.add('correct')});if(btn&&!correct)btn.classList.add('wrong');if(correct){streak++;bestStreak=Math.max(bestStreak,streak);const pts=round===1?2:round===3?3:1;score+=pts;$('feedback').textContent='Correct! +'+pts+' point'+(pts>1?'s':'')+'.'}else{streak=0;$('feedback').textContent=(choice===-1?'Time is up. ':'Not quite. ')+'Answer: '+deck[index][1][0]+'.'}opponents=opponents.map((n,i)=>n+(Math.random()<[.56,.48,.43][i]?(round===3?3:round===1?2:1):0));$('scores').innerHTML='<span>YOU: <b class="gold">'+score+'</b></span>'+opponents.map((n,i)=>'<span>'+['Alex','Sam','Morgan'][i]+': '+n+'</span>').join('');$('nextBtn').classList.remove('hidden');$('nextBtn').textContent=within+1===rounds[round][1]?(round===3?'See results':'Next round'):'Next question'}
+function next(){index++;within++;if(within>=rounds[round][1]){round++;within=0;streak=0}render()}
+function finish(){clearInterval(ticker);$('game').classList.add('hidden');$('finish').classList.remove('hidden');const winner=score>=Math.max(...opponents);$('result').textContent=winner?'You’ve gone for gold! 🏆':'A great contest!';$('summary').textContent='Your score: '+score+'. Opponents: '+opponents.join(', ')+'. '+(winner?'You finished joint-top or better!':'Play again and try to take the title.')}
+$('startBtn').onclick=start;$('again').onclick=start;$('nextBtn').onclick=next;
+</script></body></html>
