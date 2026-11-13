@@ -116,6 +116,87 @@ const curatedTrivia=[["Who was the first Roman emperor?",["Augustus","Nero","Cal
 const curatedSeen=new Set(questions.map(q=>q[0].trim().toLowerCase()));
 for(const q of curatedTrivia){const key=q[0].trim().toLowerCase();if(!curatedSeen.has(key)&&new Set(q[1]).size===4){questions.push(q);curatedSeen.add(key)}}
 
+
+/* Balanced, offline general-knowledge expansion.
+   Use the carefully authored four-clue identity cards as additional source
+   material. Keep clues only when they don't name the answer outright. */
+const identityTopics=[
+ "People and biography","History and culture","Arts and literature",
+ "Music and entertainment","Sport","Places and landmarks",
+ "Science and discovery","Ireland and the world"
+];
+const identityQuestionBank=[];
+const existingPrompts=new Set(questions.map(q=>q[0].trim().toLowerCase()));
+const distinctIdentities=[...new Map(identities.map(x=>[x.a,x])).values()];
+const nameWords=s=>s.toLowerCase().replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(x=>x.length>=5);
+function identityTopic(item){
+ const a=item.a.toLowerCase(), clues=item.c.join(" ").toLowerCase();
+ if(/bohemian|dalymount|newgrange|giant.s causeway|cliffs of moher|book of kells|easter rising|good friday agreement|croke park/.test(a))return "Ireland and the world";
+ if(/world cup|wimbledon|olympic|ryder cup|tour de france|six nations|ashes|bolt|messi|ronaldo|federer|jordan|maradona|pelé|ali|williams/.test(a))return "Sport";
+ if(/telescope|space station|moon|dna|gravity|photosynthesis|internet|world wide web|periodic table|milky way|northern lights/.test(a))return "Science and discovery";
+ if(/beethoven|mozart|bach|mercury|bowie|marley|prince|jackson|madonna|eurovision/.test(a))return "Music and entertainment";
+ if(/picasso|van gogh|monet|dalí|michelangelo|rembrandt|munch|austen|dickens|christie|doyle|tolkien|orwell|wilde|joyce|beckett|yeats|mona lisa|academy awards|booker prize/.test(a))return "Arts and literature";
+ if(/river|ocean|desert|mountain|canal|tunnel|island|alps|himalayas|antarctica|barrier reef|acropolis|colosseum|pyramid|stonehenge|tower|bridge|statue|wall|canyon|titanic|sahara|amazon|taj mahal|machu picchu/.test(a))return "Places and landmarks";
+ if(/revolution|war|empire|cold war|black death|renaissance|industrial|tubman|parks|king jr|lincoln|washington|churchill|mandela|gandhi|cleopatra|joan of arc/.test(a))return "History and culture";
+ return "People and biography";
+}
+const topicPools=new Map();
+for(const item of distinctIdentities){const t=identityTopic(item);if(!topicPools.has(t))topicPools.set(t,[]);topicPools.get(t).push(item)}
+for(let i=0;i<distinctIdentities.length;i++){
+ const item=distinctIdentities[i],topic=identityTopic(item);
+ const pool=(topicPools.get(topic).length>=4?topicPools.get(topic):distinctIdentities).filter(x=>x.a!==item.a);
+ for(let clueNo=0;clueNo<4;clueNo++){
+  const clue=item.c[clueNo], words=nameWords(item.a);
+  if(!clue||words.some(w=>clue.toLowerCase().includes(w)))continue;
+  if(clue.length<26)continue;
+  const stem="Identify the subject: "+clue;
+  const key=stem.toLowerCase();
+  if(existingPrompts.has(key))continue;
+  const wrong=[];
+  for(let step=1;step<=pool.length&&wrong.length<3;step++){
+   const candidate=pool[(i*13+step*17)%pool.length].a;
+   if(candidate!==item.a&&!wrong.includes(candidate))wrong.push(candidate);
+  }
+  if(wrong.length!==3)continue;
+  const difficulty=clueNo===3?"easy":clueNo===2?"medium":"hard";
+  const q=[stem,[item.a,...wrong],0,difficulty,topic];
+  identityQuestionBank.push(q);existingPrompts.add(key);
+ }
+}
+questions.push(...identityQuestionBank);
+/* Remove repetitive arithmetic from the default mix. All original questions
+   remain in the source bank, but each new game is capped by subject. */
+function balancedQuestionDeck(level){
+ const available=questions.filter(q=>level==="mixed"||q[3]===level);
+ const groups=new Map();
+ for(const q of available){
+  const topic=q[4]||(/capital|country|river|ocean|mountain|continent|island|desert/i.test(q[0])?"Geography":/chemical|element|atomic|periodic/i.test(q[0])?"Chemistry":/calculate|multiplied|squared|roman numeral|×|numeral/i.test(q[0])?"Maths and numerals":"General knowledge");
+  if(!groups.has(topic))groups.set(topic,[]);
+  groups.get(topic).push(q);
+ }
+ for(const [k,v] of groups)groups.set(k,shuffle(v));
+ const broad=[...groups.keys()].filter(k=>!["Maths and numerals","Chemistry","Geography"].includes(k));
+ const ordered=[],seen=new Set(),limits={"Maths and numerals":0.04,"Chemistry":0.06,"Geography":0.12};
+ const target=Math.min(500,available.length);
+ const counts={};
+ let loops=0;
+ while(ordered.length<target&&loops++<target*8){
+  const keys=shuffle([...broad,"Geography","Chemistry","Maths and numerals"]);
+  let added=false;
+  for(const key of keys){
+   const group=groups.get(key);
+   if(!group||!group.length)continue;
+   if(limits[key]!==undefined&&(counts[key]||0)>=Math.ceil(target*limits[key]))continue;
+   const q=group.pop(),id=q[0].trim().toLowerCase();
+   if(seen.has(id))continue;
+   ordered.push(q);seen.add(id);counts[key]=(counts[key]||0)+1;added=true;
+   if(ordered.length>=target)break;
+  }
+  if(!added)break;
+ }
+ return ordered.length?ordered:shuffle(available);
+}
+
 const originalQuestionCount=questions.length;
 document.getElementById("bankCount").textContent=originalQuestionCount.toLocaleString()+" questions";
 
@@ -127,7 +208,7 @@ function show(id){["start","intro","game","finish"].forEach(x=>$(x).classList.to
 function stopTimer(){clearInterval(ticker);ticker=null}
 function timer(ms,done){stopTimer();deadline=Date.now()+ms;function tick(){const left=Math.max(0,deadline-Date.now());$("bar").style.width=(left/ms*100)+"%";if(!left){stopTimer();done()}}tick();ticker=setInterval(tick,100)}
 function scores(){ $("scores").innerHTML='<span>YOU: <b class="gold">'+(round===3?finalPlayer:score)+'</b></span>'+names.slice(0,round===3?1:3).map((n,i)=>'<span>'+n+': '+(round===3?finalOpponent:opponents[i])+'</span>').join("")}
-function start(){deck=shuffle(questions.filter(q=>$("difficulty").value==="mixed"||q[3]===$("difficulty").value));identityDeck=shuffle(identities);index=round=within=score=streak=bestStreak=finalPlayer=finalOpponent=0;opponents=[0,0,0];intro()}
+function start(){deck=balancedQuestionDeck($("difficulty").value);identityDeck=shuffle(identities);index=round=within=score=streak=bestStreak=finalPlayer=finalOpponent=0;opponents=[0,0,0];intro()}
 function intro(){stopTimer();if(round>=4){finish();return}show("intro");$("introTitle").textContent=["Round 1 · Who Am I?","Round 2 · Beat the Buzzer","Round 3 · Four in a Row","Round 4 · Head to Head"][round];$("introText").textContent=["Guess the identity from four progressively easier clues. Answer early for more points; a wrong guess locks you out until the next identity.","Race the computer contestants to six points. Choose whether the next question is worth one, two or three points.","You have 40 seconds to build the longest streak of correct answers. One wrong answer resets your streak.","Face Alex in the final. Clues become easier as the points fall from four to one. First to nine wins."][round];$("introBtn").textContent=round===0?"Who am I? Let's play!":"Start round"}
 function begin(){show("game");within=0;streak=bestStreak=roundPoints=0;if(round===0)who();else if(round===1)buzzer();else if(round===2)four();else finalQuestion()}
 function resetUI(title,progress){answered=false;$("roundName").textContent=title;$("progress").textContent=progress;$("feedback").textContent="";$("answers").innerHTML="";$("nextBtn").classList.add("hidden");scores()}
@@ -145,7 +226,7 @@ $("startBtn").onclick=start;$("again").onclick=start;$("introBtn").onclick=begin
 let isMulti=false,mpNames=[],mpScore=[0,0],mpActive=0,mpRound=0,mpCount=0,mpDeck=[],mpIndex=0,mpStage=0,mpStreak=0,mpBest=0,mpFinal=[0,0];
 $("mode").onchange=()=>{$("playerFields").classList.toggle("hidden",$("mode").value!=="multi")};
 const originalStart=start;
-start=function(){isMulti=$("mode").value==="multi";if(!isMulti){$("introBtn").onclick=begin;originalStart();return}mpNames=[$("p1").value||"Player 1",$("p2").value||"Player 2"];mpScore=[0,0];mpFinal=[0,0];mpActive=mpRound=mpCount=mpIndex=0;mpDeck=shuffle(questions.filter(q=>$("difficulty").value==="mixed"||q[3]===$("difficulty").value));identityDeck=shuffle(identities);mpIntro()};
+start=function(){isMulti=$("mode").value==="multi";if(!isMulti){$("introBtn").onclick=begin;originalStart();return}mpNames=[$("p1").value||"Player 1",$("p2").value||"Player 2"];mpScore=[0,0];mpFinal=[0,0];mpActive=mpRound=mpCount=mpIndex=0;mpDeck=balancedQuestionDeck($("difficulty").value);identityDeck=shuffle(identities);mpIntro()};
 function mpIntro(){stopTimer();show("intro");$("introTitle").textContent=["Who Am I?","Beat the Buzzer","Four in a Row","Head to Head"][mpRound];$("introText").textContent=mpNames[mpActive]+", take the phone! "+["Five identities, four clues each.","Six questions; choose 1, 2 or 3 points.","40 seconds to build your best streak.","First to 9 points in the final wins."][mpRound];$("introBtn").textContent="Ready!";$("introBtn").onclick=mpPlay}
 function mpScores(){ $("scores").innerHTML=mpNames.map((n,i)=>'<span>'+n+': <b class="gold">'+(mpRound===3?mpFinal[i]:mpScore[i])+'</b></span>').join("")}
 function mpUI(label,detail){resetUI(label+" · "+mpNames[mpActive],detail);mpScores()}
